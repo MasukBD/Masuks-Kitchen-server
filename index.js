@@ -29,6 +29,7 @@ async function run() {
 
         const MenuCollection = client.db("MasuksKitchenDB").collection("menu");
         const ReviewCollection = client.db("MasuksKitchenDB").collection('reviews');
+        const CartCollecttion = client.db('MasuksKitchenDB').collection('carts');
 
         app.get('/menu', async (req, res) => {
             const cursor = MenuCollection.find();
@@ -39,6 +40,12 @@ async function run() {
         app.get('/reviews', async (req, res) => {
             const cursor = ReviewCollection.find();
             const result = await cursor.toArray();
+            res.send(result);
+        })
+
+        app.post('/carts', async (req, res) => {
+            const cart = req.body;
+            const result = await CartCollecttion.insertOne(cart);
             res.send(result);
         })
 
