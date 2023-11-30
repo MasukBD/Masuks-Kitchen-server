@@ -41,13 +41,26 @@ async function run() {
             const cursor = ReviewCollection.find();
             const result = await cursor.toArray();
             res.send(result);
+        });
+
+        // handle Cart Items 
+        app.get('/carts', async (req, res) => {
+            let query = {};
+            const email = req.query?.email;
+            if (req.query?.email) {
+                query = { email: email };
+            }
+            const cursor = CartCollecttion.find(query);
+            const result = await cursor.toArray();
+            res.send(result);
         })
 
         app.post('/carts', async (req, res) => {
             const cart = req.body;
             const result = await CartCollecttion.insertOne(cart);
             res.send(result);
-        })
+        });
+
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
