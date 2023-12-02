@@ -3,6 +3,7 @@ const app = express();
 const cors = require('cors');
 require('dotenv').config();
 const port = process.env.PORT || 5000;
+const jwt = require('jsonwebtoken');
 
 
 // middleware 
@@ -27,6 +28,7 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         client.connect();
 
+        // Database Collections 
         const usersCollection = client.db("MasuksKitchenDB").collection("users");
         const MenuCollection = client.db("MasuksKitchenDB").collection("menu");
         const ReviewCollection = client.db("MasuksKitchenDB").collection('reviews');
@@ -34,11 +36,43 @@ async function run() {
 
 
         // User Handle API start Here 
+        app.get('/users', async (req, res) => {
+            const cursor = usersCollection.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
         app.post('/users', async (req, res) => {
             const user = req.body;
+            const query = { email: user.email };
+            const isExistingUser = await usersCollection.findOne(query);
+            if (isExistingUser) {
+                return res.send({ message: 'User Already Exist on User List!' })
+            }
             const result = await usersCollection.insertOne(user);
             res.send(result);
+        });
+
+        app.patch('/users/:id', async (req, res) => {
+            const id = req.params?.id;
+            const filter = { _id: new ObjectId(id) };
+            const updatedInfo = req.body;
+            const updatedData = {
+                $set: {
+                    role: updatedInfo.role
+                }
+            };
+            const result = await usersCollection.updateOne(filter, updatedData);
+            res.send(result);
+        });
+
+        app.delete('/users/:id', async (req, res) => {
+            const id = req.params?.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await usersCollection.deleteOne(query);
+            res.send(result);
         })
+
 
         // Menu Handle API Here 
         app.get('/menu', async (req, res) => {
@@ -47,12 +81,14 @@ async function run() {
             res.send(result);
         });
 
+
         // Customer Review Handle API here 
         app.get('/reviews', async (req, res) => {
             const cursor = ReviewCollection.find();
             const result = await cursor.toArray();
             res.send(result);
         });
+
 
         // handle Cart Items API down from here
 
@@ -97,4 +133,4 @@ app.get('/', (req, res) => {
 
 app.listen(port, () => {
     console.log(`Masuk's Kitchen Running on Port ${port}`);
-})
+});
