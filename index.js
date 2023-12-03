@@ -35,6 +35,13 @@ async function run() {
         const CartCollecttion = client.db('MasuksKitchenDB').collection('carts');
 
 
+        // JWT Functionality Here 
+        app.post('/jwt', (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN, { expiresIn: '10h' })
+            res.send({ token });
+        })
+
         // User Handle API start Here 
         app.get('/users', async (req, res) => {
             const cursor = usersCollection.find();
