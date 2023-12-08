@@ -136,6 +136,12 @@ async function run() {
             res.send(result);
         });
 
+        app.post('/menu', verifyJWTToken, verifyAdmin, async (req, res) => {
+            const menuItem = req.body;
+            const result = await MenuCollection.insertOne(menuItem);
+            res.send(result);
+        })
+
 
         // Customer Review Handle API here 
         app.get('/reviews', async (req, res) => {
