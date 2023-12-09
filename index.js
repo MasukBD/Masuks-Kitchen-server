@@ -140,6 +140,13 @@ async function run() {
             const menuItem = req.body;
             const result = await MenuCollection.insertOne(menuItem);
             res.send(result);
+        });
+
+        app.delete('/menu/:id', verifyJWTToken, verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await MenuCollection.deleteOne(query);
+            res.send(result);
         })
 
 
