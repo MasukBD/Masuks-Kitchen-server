@@ -142,12 +142,30 @@ async function run() {
             res.send(result);
         });
 
-        app.delete('/menu/:id', verifyJWTToken, verifyAdmin, async (req, res) => {
+        app.put('/menu/:id', async (req, res) => {
             const id = req.params.id;
+            const getUpdatedDocument = req.body;
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true };
+            const updateDB = {
+                $set: {
+                    name: getUpdatedDocument.name,
+                    image: getUpdatedDocument.image,
+                    recipe: getUpdatedDocument.recipe,
+                    category: getUpdatedDocument.category,
+                    price: getUpdatedDocument.price
+                }
+            }
+            const result = MenuCollection.updateOne(filter, updateDB, options);
+            res.send(result);
+        })
+
+        app.delete('/menu/:id', verifyJWTToken, verifyAdmin, async (req, res) => {
+            const id = req.params?.id;
             const query = { _id: new ObjectId(id) };
             const result = await MenuCollection.deleteOne(query);
             res.send(result);
-        })
+        });
 
 
         // Customer Review Handle API here 
