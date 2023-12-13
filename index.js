@@ -2,8 +2,10 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 require('dotenv').config();
-const port = process.env.PORT || 5000;
 const jwt = require('jsonwebtoken');
+// This is your test secret API key For Stripe.step::1
+const stripe = require("stripe")(process.env.SECRET_PAYMENT_GATEWAY_KEY);
+const port = process.env.PORT || 5000;
 
 
 // middleware 
@@ -206,7 +208,30 @@ async function run() {
             const query = { _id: new ObjectId(id) };
             const result = await CartCollecttion.deleteOne(query);
             res.send(result);
-        })
+        });
+
+        // Create a PaymentIntent with the order amount and currency Stripe::2
+        app.post("/create-payment-intent", async (req, res) => {
+            const { price } = req.body;
+            //price multiplied by 100 Bcz stripe always takes unit of currency(dont take fraction)
+            const totalAmount = price * 100;
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: totalAmount,
+                currency: "usd",
+                payment_method_types: [
+                    "card"
+                ],
+                // In the latest version of the API, specifying the `automatic_payment_methods` parameter is optional because Stripe enables its functionality by default.
+                automatic_payment_methods: {
+                    enabled: true,
+                },
+            })
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+        });
+
+
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
