@@ -83,7 +83,7 @@ async function run() {
         });
 
         // Check a User if he/she Admin or Not 
-        app.get('/user/:email', verifyJWTToken, async (req, res) => {
+        app.get('/users/:email', verifyJWTToken, async (req, res) => {
             const email = req.params?.email;
 
             if (req.decoded.email !== email) {
@@ -110,7 +110,7 @@ async function run() {
         });
 
         // Set A User As Admin API
-        app.patch('/users/:id', async (req, res) => {
+        app.patch('/users/:id', verifyJWTToken, verifyAdmin, async (req, res) => {
             const id = req.params?.id;
             const filter = { _id: new ObjectId(id) };
             const updatedInfo = req.body;
@@ -123,7 +123,7 @@ async function run() {
             res.send(result);
         });
 
-        app.delete('/users/:id', async (req, res) => {
+        app.delete('/users/:id', verifyJWTToken, verifyAdmin, async (req, res) => {
             const id = req.params?.id;
             const query = { _id: new ObjectId(id) };
             const result = await usersCollection.deleteOne(query);
@@ -144,7 +144,7 @@ async function run() {
             res.send(result);
         });
 
-        app.put('/menu/:id', async (req, res) => {
+        app.put('/menu/:id', verifyJWTToken, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const getUpdatedDocument = req.body;
             const filter = { _id: new ObjectId(id) };
@@ -203,7 +203,7 @@ async function run() {
             res.send(result);
         });
 
-        app.delete('/carts/:id', async (req, res) => {
+        app.delete('/carts/:id', verifyJWTToken, async (req, res) => {
             const id = req.params?.id;
             const query = { _id: new ObjectId(id) };
             const result = await CartCollecttion.deleteOne(query);
@@ -211,7 +211,7 @@ async function run() {
         });
 
         // Create a PaymentIntent with the order amount and currency Stripe::2
-        app.post("/create-payment-intent", async (req, res) => {
+        app.post("/create-payment-intent", verifyJWTToken, async (req, res) => {
             const { price } = req.body;
             //price multiplied by 100 Bcz stripe always takes unit of currency(dont take fraction)
             const totalAmount = price * 100;
@@ -221,10 +221,6 @@ async function run() {
                 payment_method_types: [
                     "card"
                 ],
-                // In the latest version of the API, specifying the `automatic_payment_methods` parameter is optional because Stripe enables its functionality by default.
-                automatic_payment_methods: {
-                    enabled: true,
-                },
             })
             res.send({
                 clientSecret: paymentIntent.client_secret,
