@@ -53,6 +53,8 @@ async function run() {
         const MenuCollection = client.db("MasuksKitchenDB").collection("menu");
         const ReviewCollection = client.db("MasuksKitchenDB").collection('reviews');
         const CartCollecttion = client.db('MasuksKitchenDB').collection('carts');
+        const OrderCollecttion = client.db('MasuksKitchenDB').collection('orders');
+
 
 
 
@@ -226,6 +228,19 @@ async function run() {
                 clientSecret: paymentIntent.client_secret,
             });
         });
+
+
+        // ORDERS or Payment Confirmed API Handle Here 
+        app.post('/orders', verifyJWTToken, async (req, res) => {
+            const receivedOrder = req.body;
+            // Destructer receivedOrder object and remove the CartItemId 
+            const { cartItemId, ...order } = receivedOrder;
+            const orderResult = await OrderCollecttion.insertOne(order);
+            const orderItem = receivedOrder?.cartItemId;
+            const query = { _id: { $in: orderItem.map(id => new ObjectId(id)) } };
+            const removeOrderItemFromCart = await CartCollecttion.deleteMany(query);
+            res.send({ orderResult, removeOrderItemFromCart });
+        })
 
 
 
