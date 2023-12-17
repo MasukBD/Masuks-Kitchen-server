@@ -79,7 +79,12 @@ async function run() {
 
         // User Handle API start Here 
         app.get('/users', verifyJWTToken, verifyAdmin, async (req, res) => {
-            const cursor = usersCollection.find();
+            let query = {};
+            const searchQuery = req.query?.search;
+            if (req.query?.search) {
+                query = { email: { $regex: searchQuery, $options: 'i' } }
+            }
+            const cursor = usersCollection.find(query);
             const result = await cursor.toArray();
             res.send(result);
         });
@@ -231,9 +236,25 @@ async function run() {
 
 
         // ORDERS or Payment Confirmed API Handle Here 
+
+        app.get('/orders', verifyJWTToken, async (req, res) => {
+            let query = {};
+            const email = req.query?.email;
+            const decodedEmail = req.decoded.email;
+            if (email !== decodedEmail) {
+                return res.status(403).send({ error: true, message: 'forbidden access' });
+            }
+            if (req.query?.email) {
+                query = { customerEmail: email };
+            }
+            const cursor = OrderCollecttion.find(query);
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+
         app.post('/orders', verifyJWTToken, async (req, res) => {
             const receivedOrder = req.body;
-            // Destructer receivedOrder object and remove the CartItemId 
+            // Destructer receivedOrder object and remove the CartItemId to store in orderList
             const { cartItemId, ...order } = receivedOrder;
             const orderResult = await OrderCollecttion.insertOne(order);
             const orderItem = receivedOrder?.cartItemId;
