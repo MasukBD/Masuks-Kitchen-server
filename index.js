@@ -261,7 +261,39 @@ async function run() {
             const query = { _id: { $in: orderItem.map(id => new ObjectId(id)) } };
             const removeOrderItemFromCart = await CartCollecttion.deleteMany(query);
             res.send({ orderResult, removeOrderItemFromCart });
-        })
+        });
+
+        // Administrative Data Transfer to Admin page 
+        app.get('/adminData', verifyJWTToken, verifyAdmin, async (req, res) => {
+            const totalOrder = await OrderCollecttion.estimatedDocumentCount();
+            const totalItem = await MenuCollection.estimatedDocumentCount();
+            const query = { role: { $ne: 'admin' } };
+            const users = await usersCollection.find(query).toArray();
+            const customer = users.length;
+            res.send({ totalOrder, totalItem, customer });
+        });
+
+        // Get Stripe Balance 
+        app.get('/getBalance', verifyJWTToken, verifyAdmin, (req, res) => {
+            stripe.balance.retrieve()
+                .then(balance => {
+                    // Convert amounts to user-friendly format by dividing by 100
+                    const convertedBalance = {
+                        available: balance.available.map(entry => ({
+                            amount: entry.amount / 100,
+                            currency: entry.currency
+                        })),
+                        pending: balance.pending.map(entry => ({
+                            amount: entry.amount / 100,
+                            currency: entry.currency
+                        }))
+                    };
+                    res.send(convertedBalance);
+                })
+                .catch(error => {
+                    res.status(500).send(error.message);
+                });
+        });
 
 
 
