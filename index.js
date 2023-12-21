@@ -221,7 +221,7 @@ async function run() {
         app.post("/create-payment-intent", verifyJWTToken, async (req, res) => {
             const { price } = req.body;
             //price multiplied by 100 Bcz stripe always takes unit of currency(dont take fraction)
-            const totalAmount = price * 100;
+            const totalAmount = parseInt(price * 100);
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: totalAmount,
                 currency: "usd",
@@ -273,6 +273,44 @@ async function run() {
             res.send({ totalOrder, totalItem, customer });
         });
 
+        // Get Statistical Data for Admin
+        app.get('/order-stat-by-category', verifyJWTToken, verifyAdmin, async (req, res) => {
+            const pipeline = [
+                {
+                    $unwind: '$foodItemId'
+                },
+                {
+                    $lookup: {
+                        from: 'menu',
+                        let: { foodItemId: { $toObjectId: '$foodItemId' } },
+                        pipeline: [
+                            { $match: { $expr: { $eq: ['$_id', '$$foodItemId'] } } }
+                        ],
+                        as: 'menuItem'
+                    }
+                },
+                { $unwind: '$menuItem' },
+                {
+                    $group: {
+                        _id: '$menuItem.category',
+                        totalItemsSold: { $sum: 1 },
+                        totalPrice: { $sum: '$menuItem.price' }
+                    }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        category: '$_id',
+                        totalItemsSold: '$totalItemsSold',
+                        totalSales: '$totalPrice'
+                    }
+                }
+            ];
+            const result = await OrderCollecttion.aggregate(pipeline).toArray();
+            res.send(result)
+        });
+
+
         // Get Stripe Balance 
         app.get('/getBalance', verifyJWTToken, verifyAdmin, (req, res) => {
             stripe.balance.retrieve()
@@ -294,8 +332,6 @@ async function run() {
                     res.status(500).send(error.message);
                 });
         });
-
-
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
