@@ -184,6 +184,12 @@ async function run() {
             res.send(result);
         });
 
+        app.post('/reviews', verifyJWTToken, async (req, res) => {
+            const review = req.body;
+            const result = await ReviewCollection.insertOne(review);
+            res.send(result);
+        })
+
 
         // JWT Serversite:STEP=3 use verifyJWTToken to those API's, you want to secure
 
@@ -244,12 +250,19 @@ async function run() {
             if (email !== decodedEmail) {
                 return res.status(403).send({ error: true, message: 'forbidden access' });
             }
-            if (req.query?.email) {
-                query = { customerEmail: email };
+            if (email) {
+                const user = await usersCollection.findOne({ email: email });
+                if (user.role == 'admin') {
+                    const result = await OrderCollecttion.find().toArray();
+                    return res.send(result);
+                }
+                else {
+                    query = { customerEmail: email };
+                    const cursor = OrderCollecttion.find(query);
+                    const result = await cursor.toArray();
+                    res.send(result);
+                }
             }
-            const cursor = OrderCollecttion.find(query);
-            const result = await cursor.toArray();
-            res.send(result);
         })
 
         app.post('/orders', verifyJWTToken, async (req, res) => {
@@ -262,6 +275,19 @@ async function run() {
             const removeOrderItemFromCart = await CartCollecttion.deleteMany(query);
             res.send({ orderResult, removeOrderItemFromCart });
         });
+
+        app.patch('/orders/:id', verifyJWTToken, verifyAdmin, async (req, res) => {
+            const id = req.params?.id;
+            const updateData = req.body;
+            const filter = { _id: new ObjectId(id) };
+            const updateDataInDB = {
+                $set: {
+                    orderStatus: updateData.status,
+                }
+            }
+            const result = await OrderCollecttion.updateOne(filter, updateDataInDB);
+            res.send(result);
+        })
 
         // Administrative Data Transfer to Admin page 
         app.get('/adminData', verifyJWTToken, verifyAdmin, async (req, res) => {
