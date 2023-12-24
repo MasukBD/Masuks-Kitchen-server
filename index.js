@@ -54,6 +54,7 @@ async function run() {
         const ReviewCollection = client.db("MasuksKitchenDB").collection('reviews');
         const CartCollecttion = client.db('MasuksKitchenDB').collection('carts');
         const OrderCollecttion = client.db('MasuksKitchenDB').collection('orders');
+        const BookingCollecttion = client.db('MasuksKitchenDB').collection('bookings');
 
 
 
@@ -335,6 +336,41 @@ async function run() {
             const result = await OrderCollecttion.aggregate(pipeline).toArray();
             res.send(result)
         });
+
+        // Get Statistical Data for User 
+        app.get('/order-summary', verifyJWTToken, async (req, res) => {
+            const query = req.query?.email;
+            const aggPipline = [
+                { $match: { customerEmail: query } },
+                { $unwind: '$foodItemId' },
+                {
+                    $lookup: {
+                        from: 'menu',
+                        let: { foodItemId: { $toObjectId: '$foodItemId' } },
+                        pipeline: [
+                            { $match: { $expr: { $eq: ['$_id', '$$foodItemId'] } } }
+                        ],
+                        as: 'menuItem'
+                    }
+                },
+                { $unwind: '$menuItem' },
+                {
+                    $group: {
+                        _id: '$menuItem.category',
+                        count: { $sum: 1 },
+                    },
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        category: '$_id',
+                        totalItems: '$count',
+                    },
+                },
+            ];
+            const result = await OrderCollecttion.aggregate(aggPipline).toArray();
+            res.send(result);
+        })
 
 
         // Get Stripe Balance 
