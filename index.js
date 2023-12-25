@@ -5,6 +5,7 @@ require('dotenv').config();
 const jwt = require('jsonwebtoken');
 // This is your test secret API key For Stripe.step::1
 const stripe = require("stripe")(process.env.SECRET_PAYMENT_GATEWAY_KEY);
+const moment = require('moment-timezone');
 const port = process.env.PORT || 5000;
 
 
@@ -223,6 +224,59 @@ async function run() {
             const result = await CartCollecttion.deleteOne(query);
             res.send(result);
         });
+
+
+        // Booking API Handle Here 
+        app.get('/bookings', verifyJWTToken, async (req, res) => {
+            let query = {};
+            const email = req.query?.email;
+            const decodedMail = req.decoded.email;
+            if (email !== decodedMail) {
+                return res.status(403).send({ error: true, message: 'forbidden access' });
+            }
+            if (email) {
+                const user = await usersCollection.findOne({ email: email });
+                if (user.role == 'admin') {
+                    const result = await BookingCollecttion.find().toArray();
+                    return res.send(result);
+                }
+                else {
+                    query = { email: email };
+                    const cursor = BookingCollecttion.find(query);
+                    const result = await cursor.toArray();
+                    res.send(result);
+                }
+            }
+
+        })
+
+        app.post('/bookings', verifyJWTToken, async (req, res) => {
+            const bookingData = req.body;
+
+            // Fixing date format using moment timezone 
+            const clientDateString = bookingData.time;
+            const clientDateObject = new Date(clientDateString);
+            const desiredTimeZone = 'Asia/Dhaka';
+            const convertedDate = moment(clientDateObject).tz(desiredTimeZone).format('ddd MMM DD YYYY HH:mm:ss');
+
+            bookingData.time = convertedDate;
+
+            const result = await BookingCollecttion.insertOne(bookingData);
+            res.send(result);
+        });
+
+        app.patch('/bookings/:id', verifyJWTToken, verifyAdmin, async (req, res) => {
+            const getUpdateData = req.body;
+            const id = req.params?.id;
+            const filter = { _id: new ObjectId(id) };
+            const updateToDB = {
+                $set: {
+                    status: getUpdateData.status,
+                }
+            };
+            const result = await BookingCollecttion.updateOne(filter, updateToDB);
+            res.send(result);
+        })
 
         // Create a PaymentIntent with the order amount and currency Stripe::2
         app.post("/create-payment-intent", verifyJWTToken, async (req, res) => {
