@@ -383,7 +383,7 @@ async function run() {
                         _id: 0,
                         category: '$_id',
                         totalItemsSold: '$totalItemsSold',
-                        totalSales: '$totalPrice'
+                        totalSales: { $round: ['$totalPrice', 2] }
                     }
                 }
             ];
